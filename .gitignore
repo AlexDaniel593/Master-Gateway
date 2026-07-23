@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+.next/
+.env
+.env.local
+.env.production
+
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# NestJS
+# (add any framework-specific files below)

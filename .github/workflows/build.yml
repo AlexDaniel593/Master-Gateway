@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  push:
+    branches: [dev, test, main]
+  pull_request:
+    branches: [dev, test, main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  notify-start:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify pipeline started
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Pipeline Iniciado</b>
+            Repo: ${{ github.repository }}
+            Branch: <b>main</b>
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
+            Estado: En ejecucion...
+
+  notify-merge-dev-test:
+    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify merge to dev/test
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Merge exitoso a ${{ github.ref_name }}</b>
+            Repo: ${{ github.repository }}
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
+
+  build-and-test:
+    name: Lint, Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Lint backend
+        run: cd backend && npm run lint
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Run backend unit tests
+        run: cd backend && npm run test -- --coverage
+
+      - name: Upload coverage artifact
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: backend/coverage/
+          retention-days: 7

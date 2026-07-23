@@ -1,0 +1,5 @@
+{
+  "name": "master-gateway",
+  "private": true,
+  "workspaces": ["backend", "frontend"]
+}
