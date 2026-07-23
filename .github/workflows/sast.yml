@@ -35,11 +35,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
 
-      - name: Check Quality Gate
-        id: quality-gate
-        uses: SonarSource/sonar-quality-gate-action@master
-        continue-on-error: true
-
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
@@ -80,7 +75,7 @@ jobs:
           echo "LOW=${L:-0}" >> $GITHUB_ENV
           echo "TOTAL=$((C+H+M+L))" >> $GITHUB_ENV
 
-      - name: SonarCloud metrics via API
+      - name: SonarCloud metrics & Quality Gate via API
         if: always()
         id: metrics
         run: |
@@ -90,13 +85,24 @@ jobs:
           TOKEN="${{ secrets.SONARCLOUD_TOKEN }}"
           AUTH="Authorization: Bearer ${TOKEN}"
 
+          echo "Waiting for SonarCloud analysis to complete..."
+          for i in $(seq 1 30); do
+            QG=$(curl -s -H "$AUTH" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${KEY}")
+            QG_STATUS=$(echo "$QG" | jq -r '.projectStatus.status // "UNKNOWN"')
+            if [ "$QG_STATUS" != "UNKNOWN" ]; then
+              echo "Analysis found after ${i}s"
+              break
+            fi
+            echo "Waiting... (${i}/30)"
+            sleep 5
+          done
+
+          echo "QG_STATUS=$QG_STATUS" >> $GITHUB_ENV
+
           METRICS=$(curl -s -H "$AUTH" "https://sonarcloud.io/api/measures/component?component=${KEY}&metricKeys=bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc,security_rating,reliability_rating,sqale_rating,sqale_index")
-          QG=$(curl -s -H "$AUTH" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${KEY}")
-          QG_STATUS=$(echo "$QG" | jq -r '.projectStatus.status // "UNKNOWN"')
 
           extract() { echo "$METRICS" | jq -r ".component.measures[]? | select(.metric==\"$1\") | .value // \"0\""; }
 
-          echo "QG_STATUS=$QG_STATUS" >> $GITHUB_ENV
           echo "BUGS=$(extract bugs)" >> $GITHUB_ENV
           echo "VULNS=$(extract vulnerabilities)" >> $GITHUB_ENV
           echo "SMELLS=$(extract code_smells)" >> $GITHUB_ENV
@@ -215,5 +221,5 @@ jobs:
           EOF
 
       - name: Abort on Quality Gate failure
-        if: env.QG_STATUS == 'ERROR'
+        if: env.QG_STATUS != 'OK'
         run: exit 1
