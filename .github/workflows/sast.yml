@@ -1,0 +1,221 @@
+name: SAST Analysis
+
+on:
+  push:
+    branches: [test, main]
+  pull_request:
+    branches: [test, main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  sast:
+    name: SonarCloud + Trivy + CodeBERT
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test -- --coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+
+      - name: Check Quality Gate
+        id: quality-gate
+        uses: SonarSource/sonar-quality-gate-action@master
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+      - name: Scan dependencies with Trivy
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: json
+          output: trivy-report.json
+          exit-code: 0
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+
+      - name: Extract Trivy summary
+        if: always()
+        id: trivy
+        run: |
+          if [ ! -f "trivy-report.json" ]; then
+            echo "CRITICAL=0" >> $GITHUB_ENV
+            echo "HIGH=0" >> $GITHUB_ENV
+            echo "MEDIUM=0" >> $GITHUB_ENV
+            echo "LOW=0" >> $GITHUB_ENV
+            echo "TOTAL=0" >> $GITHUB_ENV
+            exit 0
+          fi
+          C=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' trivy-report.json | wc -l | xargs)
+          H=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' trivy-report.json | wc -l | xargs)
+          M=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="MEDIUM") | .VulnerabilityID' trivy-report.json | wc -l | xargs)
+          L=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity=="LOW") | .VulnerabilityID' trivy-report.json | wc -l | xargs)
+          echo "CRITICAL=${C:-0}" >> $GITHUB_ENV
+          echo "HIGH=${H:-0}" >> $GITHUB_ENV
+          echo "MEDIUM=${M:-0}" >> $GITHUB_ENV
+          echo "LOW=${L:-0}" >> $GITHUB_ENV
+          echo "TOTAL=$((C+H+M+L))" >> $GITHUB_ENV
+
+      - name: SonarCloud metrics via API
+        if: always()
+        id: metrics
+        run: |
+          ORG=$(grep 'sonar.organization=' sonar-project.properties | head -1 | cut -d= -f2)
+          KEY=$(grep 'sonar.projectKey=' sonar-project.properties | head -1 | cut -d= -f2)
+          echo "SONAR_PROJECT_KEY=$KEY" >> $GITHUB_ENV
+          TOKEN="${{ secrets.SONARCLOUD_TOKEN }}"
+          AUTH="Authorization: Bearer ${TOKEN}"
+
+          METRICS=$(curl -s -H "$AUTH" "https://sonarcloud.io/api/measures/component?component=${KEY}&metricKeys=bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc,security_rating,reliability_rating,sqale_rating,sqale_index")
+          QG=$(curl -s -H "$AUTH" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${KEY}")
+          QG_STATUS=$(echo "$QG" | jq -r '.projectStatus.status // "UNKNOWN"')
+
+          extract() { echo "$METRICS" | jq -r ".component.measures[]? | select(.metric==\"$1\") | .value // \"0\""; }
+
+          echo "QG_STATUS=$QG_STATUS" >> $GITHUB_ENV
+          echo "BUGS=$(extract bugs)" >> $GITHUB_ENV
+          echo "VULNS=$(extract vulnerabilities)" >> $GITHUB_ENV
+          echo "SMELLS=$(extract code_smells)" >> $GITHUB_ENV
+          echo "DUPL=$(extract duplicated_lines_density)" >> $GITHUB_ENV
+          echo "LINES=$(extract ncloc)" >> $GITHUB_ENV
+
+          rating_letter() { case $1 in 1) echo "A";; 2) echo "B";; 3) echo "C";; 4) echo "D";; 5) echo "E";; *) echo "N/A";; esac; }
+          echo "SEC=$(rating_letter $(extract security_rating))" >> $GITHUB_ENV
+          echo "REL=$(rating_letter $(extract reliability_rating))" >> $GITHUB_ENV
+          echo "MAIN=$(rating_letter $(extract sqale_rating))" >> $GITHUB_ENV
+
+          if [ "$QG_STATUS" = "OK" ]; then
+            echo "QG_EMOJI=✅" >> $GITHUB_ENV
+            echo "QG_LABEL=APROBADO" >> $GITHUB_ENV
+          else
+            echo "QG_EMOJI=❌" >> $GITHUB_ENV
+            echo "QG_LABEL=FALLADO" >> $GITHUB_ENV
+          fi
+
+      - name: CodeBERT analysis (optional)
+        if: env.HF_TOKEN != ''
+        continue-on-error: true
+        run: python scripts/analyze_codebert.py
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+
+      - name: Build Telegram message
+        if: always()
+        id: telegram
+        run: |
+          TRIVY_EMOJI="🟢"
+          if [ "${CRITICAL}" -gt 0 ] || [ "${HIGH}" -gt 0 ]; then TRIVY_EMOJI="🔴"
+          elif [ "${MEDIUM}" -gt 0 ]; then TRIVY_EMOJI="🟡"
+          elif [ "${LOW}" -gt 0 ]; then TRIVY_EMOJI="🔵"; fi
+
+          cat > telegram_message.txt << TELEOF
+          <b>${QG_EMOJI} Analisis SAST - Master Gateway</b>
+
+          <b>Estado Quality Gate:</b> ${QG_LABEL}
+          <b>Rama:</b> <code>${{ github.ref_name }}</code>
+          <b>Autor:</b> ${{ github.actor }}
+          <b>Commit:</b> <code>${{ github.sha }}</code>
+
+          <b>Metricas Generales:</b>
+          🐛 Bugs: ${BUGS}
+          🔓 Vulnerabilidades: ${VULNS}
+          👃 Code Smells: ${SMELLS}
+          📋 Lineas de codigo: ${LINES}
+          🔄 Duplicacion: ${DUPL}%
+
+          <b>Ratings de Calidad:</b>
+          🔒 Seguridad: ${SEC}
+          🛡️ Fiabilidad: ${REL}
+          🏗️ Mantenibilidad: ${MAIN}
+
+          <b>${TRIVY_EMOJI} Dependencias (Trivy):</b>
+          🔴 CRITICAL: ${CRITICAL}
+          🟠 HIGH: ${HIGH}
+          🟡 MEDIUM: ${MEDIUM}
+          🔵 LOW: ${LOW}
+          <b>Total: ${TOTAL}</b>
+
+          <a href="https://sonarcloud.io/project/overview?id=${SONAR_PROJECT_KEY}">Ver en SonarCloud</a>
+          <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Logs del workflow</a>
+          TELEOF
+          echo "Telegram message built"
+
+      - name: Send Telegram notification
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message_file: telegram_message.txt
+
+      - name: GitHub Step Summary
+        if: always()
+        run: |
+          RATING_EMOJI() { case $1 in A) echo "🟢";; B) echo "🟡";; *) echo "🔴";; esac; }
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # ${QG_EMOJI} Reporte SAST - Master Gateway
+
+          ## Estado Quality Gate: **${QG_LABEL}**
+
+          ### Metricas Generales
+          | Metrica | Valor |
+          |---|---|
+          | 🐛 Bugs | **${BUGS}** |
+          | 🔓 Vulnerabilidades | **${VULNS}** |
+          | 👃 Code Smells | **${SMELLS}** |
+          | 📋 Lineas de codigo | **${LINES}** |
+          | 🔄 Duplicacion | **${DUPL}%** |
+
+          ### Ratings de Calidad
+          | Categoria | Rating |
+          |---|---|
+          | 🔒 Seguridad | $(RATING_EMOJI ${SEC}) **${SEC}** |
+          | 🛡️ Fiabilidad | $(RATING_EMOJI ${REL}) **${REL}** |
+          | 🏗️ Mantenibilidad | $(RATING_EMOJI ${MAIN}) **${MAIN}** |
+
+          ### Vulnerabilidades en dependencias (Trivy)
+          | Severidad | Cantidad |
+          |---|---|
+          | 🔴 CRITICAL | **${CRITICAL}** |
+          | 🟠 HIGH | **${HIGH}** |
+          | 🟡 MEDIUM | **${MEDIUM}** |
+          | 🔵 LOW | **${LOW}** |
+          | **TOTAL** | **${TOTAL}** |
+
+          ---
+          *Analisis ejecutado en rama \`${{ github.ref_name }}\`*
+          EOF
+
+      - name: Abort on Quality Gate failure
+        if: env.QG_STATUS == 'ERROR'
+        run: exit 1
