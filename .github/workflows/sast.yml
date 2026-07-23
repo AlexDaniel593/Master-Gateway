@@ -30,6 +30,12 @@ jobs:
       - name: Run backend tests with coverage
         run: cd backend && npm run test -- --coverage
 
+      - name: Setup Java 21 (required by SonarCloud)
+        uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '21'
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
