@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   sast:
@@ -26,11 +26,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install backend dependencies
+        run: cd backend && npm ci
 
-      - name: Run tests with coverage
-        run: npm run test -- --coverage
+      - name: Run backend tests with coverage
+        run: cd backend && npm run test -- --coverage
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage/
+          path: backend/coverage/
           retention-days: 7
 
       - name: Scan dependencies with Trivy
