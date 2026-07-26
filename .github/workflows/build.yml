@@ -14,21 +14,31 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Validar PR a test solo desde dev
-        if: github.base_ref == 'test'
+      - uses: actions/checkout@v4
+      - name: Validar origen del PR
         run: |
-          if [ "${{ github.head_ref }}" != "dev" ]; then
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+
+          echo "🔍 Validando PR: $HEAD → $BASE"
+
+          if [ "$BASE" = "dev" ]; then
+            echo "✅ PR a dev permitido sin restricciones"
+            exit 0
+          fi
+
+          if [ "$BASE" = "test" ] && [ "$HEAD" != "dev" ]; then
             echo "❌ Solo se permiten PRs a 'test' desde la rama 'dev'"
             exit 1
           fi
-          echo "✅ PR a test desde dev - válido"
 
-      - name: Bloquear PR directo a main
-        if: github.base_ref == 'main'
-        run: |
-          echo "❌ No se permiten PRs directos a 'main'"
-          echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
-          exit 1
+          if [ "$BASE" = "main" ]; then
+            echo "❌ No se permiten PRs directos a 'main'"
+            echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
+            exit 1
+          fi
+
+          echo "✅ PR válido"
 
   notify-start:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -119,7 +129,7 @@ jobs:
           if [ "$PR_EXISTS" -gt 0 ]; then
             PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
             echo "ℹ️ PR #$PR_NUMBER ya existe. Mergeando..."
-            gh pr merge "$PR_NUMBER" --merge --delete-branch
+            gh pr merge "$PR_NUMBER" --merge --auto
           else
             echo "🚀 Creando PR test → main..."
             PR_URL=$(gh pr create \
@@ -130,7 +140,7 @@ jobs:
               --label auto-merge)
             echo "✅ PR creado: $PR_URL"
             PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
-            gh pr merge "$PR_NUMBER" --merge --delete-branch
+            gh pr merge "$PR_NUMBER" --merge --auto
           fi
 
       - name: Notificar auto-merge
