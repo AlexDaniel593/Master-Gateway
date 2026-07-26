@@ -162,7 +162,9 @@ export default function Sidebar() {
             </Avatar>
             <div className="text-sm">
               <p className="font-medium truncate max-w-[120px]">{user?.nombre || user?.email}</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[120px]">{user?.email}</p>
+              {user?.nombre && (
+                <p className="text-xs text-muted-foreground truncate max-w-[120px]">{user?.email}</p>
+              )}
             </div>
           </div>
           <DropdownMenu>

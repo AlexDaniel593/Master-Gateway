@@ -38,19 +38,20 @@ export class RolesService {
     return rol;
   }
 
-  async create(dto: CreateRolDto) {
-    const rol = this.rolRepo.create(dto);
+  async create(dto: CreateRolDto, userId: string) {
+    const rol = this.rolRepo.create({ ...dto, creadoPor: userId, actualizadoPor: userId });
     return this.rolRepo.save(rol);
   }
 
-  async update(id: string, dto: UpdateRolDto) {
+  async update(id: string, dto: UpdateRolDto, userId: string) {
     const rol = await this.rolRepo.findOne({ where: { id, estado: 'ACTIVO' } });
     if (!rol) throw new NotFoundException('Rol no encontrado');
     Object.assign(rol, dto);
+    rol.actualizadoPor = userId;
     return this.rolRepo.save(rol);
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const rol = await this.rolRepo.findOne({ where: { id } });
     if (!rol) throw new NotFoundException('Rol no encontrado');
     const usuariosActivos = await this.usuarioRolRepo.count({
@@ -61,11 +62,12 @@ export class RolesService {
         'No se puede eliminar un rol con usuarios activos asignados',
       );
     rol.estado = 'INACTIVO';
+    rol.actualizadoPor = userId;
     await this.rolRepo.save(rol);
     return { message: 'Rol eliminado lógicamente' };
   }
 
-  async asignarUsuario(rolId: string, usuarioId: string) {
+  async asignarUsuario(rolId: string, usuarioId: string, userId: string) {
     const rol = await this.rolRepo.findOne({
       where: { id: rolId, estado: 'ACTIVO' },
     });
@@ -83,11 +85,11 @@ export class RolesService {
     });
     if (existente)
       throw new BadRequestException('El usuario ya tiene este rol asignado');
-    const ur = this.usuarioRolRepo.create({ usuario, rol });
+    const ur = this.usuarioRolRepo.create({ usuario, rol, creadoPor: userId, actualizadoPor: userId });
     return this.usuarioRolRepo.save(ur);
   }
 
-  async desasignarUsuario(rolId: string, usuarioId: string) {
+  async desasignarUsuario(rolId: string, usuarioId: string, userId: string) {
     const ur = await this.usuarioRolRepo.findOne({
       where: {
         usuario: { id: usuarioId },
@@ -97,6 +99,7 @@ export class RolesService {
     });
     if (!ur) throw new NotFoundException('La asignación no existe');
     ur.estado = 'INACTIVO';
+    ur.actualizadoPor = userId;
     await this.usuarioRolRepo.save(ur);
     return { message: 'Rol desasignado del usuario' };
   }
