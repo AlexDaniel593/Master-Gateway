@@ -119,6 +119,36 @@ jobs:
           path: backend/coverage/
           retention-days: 7
 
+  auto-merge-to-test:
+    if: github.event_name == 'pull_request' && github.base_ref == 'test' && !failure() && !cancelled()
+    needs: [build-and-test, validate-pull-request]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Habilitar auto-merge dev → test
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          echo "🚀 Habilitando auto-merge para PR #$PR_NUMBER (dev → test)"
+          gh pr merge "$PR_NUMBER" --merge --auto
+          echo "✅ Auto-merge habilitado en PR #$PR_NUMBER"
+
+      - name: Notificar auto-merge a test
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>🤖 Auto-merge habilitado</b>
+            dev → test
+            PR: <code>${{ github.event.pull_request.html_url }}</code>
+            Autor: ${{ github.actor }}
+
   auto-merge-to-main:
     if: github.ref == 'refs/heads/test' && github.event_name == 'push' && !failure() && !cancelled()
     needs: [build-and-test, validate-pull-request]
