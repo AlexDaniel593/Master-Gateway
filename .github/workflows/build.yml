@@ -10,6 +10,26 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  validate-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar PR a test solo desde dev
+        if: github.base_ref == 'test'
+        run: |
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "❌ Solo se permiten PRs a 'test' desde la rama 'dev'"
+            exit 1
+          fi
+          echo "✅ PR a test desde dev - válido"
+
+      - name: Bloquear PR directo a main
+        if: github.base_ref == 'main'
+        run: |
+          echo "❌ No se permiten PRs directos a 'main'"
+          echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
+          exit 1
+
   notify-start:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -46,8 +66,12 @@ jobs:
 
   build-and-test:
     name: Lint, Build & Test
+    needs: validate-pull-request
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +79,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Install backend dependencies
         run: cd backend && npm install
 
@@ -74,3 +99,48 @@ jobs:
           name: coverage
           path: backend/coverage/
           retention-days: 7
+
+  auto-merge-to-main:
+    if: github.ref == 'refs/heads/test' && github.event_name == 'push' && !failure() && !cancelled()
+    needs: [build-and-test, validate-pull-request]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear PR y mergear test → main
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB }}
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head test --state open --json number --jq 'length')
+
+          if [ "$PR_EXISTS" -gt 0 ]; then
+            PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
+            echo "ℹ️ PR #$PR_NUMBER ya existe. Mergeando..."
+            gh pr merge "$PR_NUMBER" --merge --delete-branch
+          else
+            echo "🚀 Creando PR test → main..."
+            PR_URL=$(gh pr create \
+              --base main \
+              --head test \
+              --title "🤖 Auto-merge: test → main" \
+              --body "PR generado automáticamente tras pasar los tests en \`test\`." \
+              --label auto-merge)
+            echo "✅ PR creado: $PR_URL"
+            PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+            gh pr merge "$PR_NUMBER" --merge --delete-branch
+          fi
+
+      - name: Notificar auto-merge
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>🤖 Auto-merge completado</b>
+            test → main
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
