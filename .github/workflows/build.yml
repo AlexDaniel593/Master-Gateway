@@ -1,0 +1,195 @@
+name: Build
+
+on:
+  push:
+    branches: [dev, test, main]
+  pull_request:
+    branches: [dev, test, main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  validate-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar origen del PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+
+          echo "🔍 Validando PR: $HEAD → $BASE"
+
+          if [ "$BASE" = "dev" ]; then
+            echo "✅ PR a dev permitido sin restricciones"
+            exit 0
+          fi
+
+          if [ "$BASE" = "test" ] && [ "$HEAD" != "dev" ]; then
+            echo "❌ Solo se permiten PRs a 'test' desde la rama 'dev'"
+            exit 1
+          fi
+
+          if [ "$BASE" = "main" ]; then
+            LABELS=$(gh pr view "${{ github.event.pull_request.number }}" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+            if echo "$LABELS" | grep -q "auto-merge"; then
+              echo "✅ PR test → main automático permitido"
+              exit 0
+            fi
+            echo "❌ No se permiten PRs directos a 'main'"
+            echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
+            exit 1
+          fi
+
+          echo "✅ PR válido"
+
+  notify-start:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify pipeline started
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Pipeline Iniciado</b>
+            Repo: ${{ github.repository }}
+            Branch: <b>main</b>
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
+            Estado: En ejecucion...
+
+  notify-merge-dev-test:
+    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify merge to dev/test
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Merge exitoso a ${{ github.ref_name }}</b>
+            Repo: ${{ github.repository }}
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
+
+  build-and-test:
+    name: Lint, Build & Test
+    needs: validate-pull-request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Lint backend
+        run: cd backend && npm run lint
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Run backend unit tests
+        run: cd backend && npm run test -- --coverage
+
+      - name: Upload coverage artifact
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: backend/coverage/
+          retention-days: 7
+
+  auto-merge-to-test:
+    if: github.event_name == 'pull_request' && github.base_ref == 'test' && !failure() && !cancelled()
+    needs: [build-and-test, validate-pull-request]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Habilitar auto-merge dev → test
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          echo "🚀 Habilitando auto-merge para PR #$PR_NUMBER (dev → test)"
+          gh pr merge "$PR_NUMBER" --merge --auto
+          echo "✅ Auto-merge habilitado en PR #$PR_NUMBER"
+
+      - name: Notificar auto-merge a test
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>🤖 Auto-merge habilitado</b>
+            dev → test
+            PR: <code>${{ github.event.pull_request.html_url }}</code>
+            Autor: ${{ github.actor }}
+
+  auto-merge-to-main:
+    if: github.ref == 'refs/heads/test' && github.event_name == 'push' && !failure() && !cancelled()
+    needs: [build-and-test, validate-pull-request]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear PR y mergear test → main
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB }}
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head test --state open --json number --jq 'length')
+
+          if [ "$PR_EXISTS" -gt 0 ]; then
+            PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
+            echo "ℹ️ PR #$PR_NUMBER ya existe. Mergeando..."
+            gh pr merge "$PR_NUMBER" --merge --auto
+          else
+            echo "🚀 Creando PR test → main..."
+            PR_URL=$(gh pr create \
+              --base main \
+              --head test \
+              --title "🤖 Auto-merge: test → main" \
+              --body "PR generado automáticamente tras pasar los tests en \`test\`." \
+              --label auto-merge)
+            echo "✅ PR creado: $PR_URL"
+            PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
+            gh pr merge "$PR_NUMBER" --merge --auto
+          fi
+
+      - name: Notificar auto-merge
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>🤖 Auto-merge completado</b>
+            test → main
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
