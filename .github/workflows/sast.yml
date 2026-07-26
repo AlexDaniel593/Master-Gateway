@@ -129,7 +129,7 @@ jobs:
         working-directory: backend
         run: |
           npm run test:cov
-          [ ! -f "coverage/lcov.info" ] && echo "" > coverage/lcov.info
+          [ ! -f "coverage/lcov.info" ] && echo "" > coverage/lcov.info || true
 
       # ---------- 5. Crear proyecto y asignar Quality Gate ----------
       - name: 📁 Crear proyecto en SonarQube
