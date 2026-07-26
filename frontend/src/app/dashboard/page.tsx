@@ -33,11 +33,11 @@ export default function DashboardPage() {
           return (
             <Card key={stat.label} className="hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                <Icon className={`h-5 w-5 ${stat.color}`} />
+                <CardTitle className="text-base font-medium">{stat.label}</CardTitle>
+                <Icon className={`h-10 w-10 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <Link href={stat.href} className="text-xs text-muted-foreground hover:text-primary">
+                <Link href={stat.href} className="text-base text-muted-foreground hover:text-primary">
                   Ir a {stat.label} →
                 </Link>
               </CardContent>
