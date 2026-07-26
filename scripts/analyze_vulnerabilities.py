@@ -61,33 +61,6 @@ def analyze_file(filepath):
     return findings
 
 
-def try_ml_analysis(filepath):
-    try:
-        import joblib
-        import numpy as np
-        model_path = os.path.join(
-            os.path.dirname(__file__), "..", "models",
-            "vulnerability_detector_js_ts.joblib"
-        )
-        if not os.path.exists(model_path):
-            return None
-
-        model = joblib.load(model_path)
-        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-
-        proba = model.predict_proba([content])[0]
-        pred = model.predict([content])[0]
-
-        return {
-            "file": filepath,
-            "prediction": "vulnerable" if pred == 1 else "safe",
-            "confidence": round(float(proba[1] if pred == 1 else proba[0]), 4),
-        }
-    except Exception as e:
-        return {"file": filepath, "error_ml": str(e)}
-
-
 def main():
     base_sha = os.environ.get("BASE_SHA", "HEAD~1")
     head_sha = os.environ.get("HEAD_SHA", "HEAD")
@@ -100,7 +73,6 @@ def main():
             "status": "skipped",
             "changed_files": 0,
             "vulnerabilities": [],
-            "ml_results": [],
             "abort": False
         }
         with open(ANALYSIS_REPORT, "w") as f:
@@ -108,15 +80,11 @@ def main():
         sys.exit(0)
 
     all_findings = []
-    ml_results = []
 
     for filepath in changed_files:
         if not os.path.exists(filepath):
             continue
         all_findings.extend(analyze_file(filepath))
-        ml_result = try_ml_analysis(filepath)
-        if ml_result:
-            ml_results.append(ml_result)
 
     abort_pipeline = len(all_findings) > 0
 
@@ -124,7 +92,6 @@ def main():
         "status": "completed",
         "changed_files": len(changed_files),
         "pattern_vulnerabilities": all_findings,
-        "ml_results": ml_results,
         "total_vulnerabilities": len(all_findings),
         "abort": abort_pipeline
     }
