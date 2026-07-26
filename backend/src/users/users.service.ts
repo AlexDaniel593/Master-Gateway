@@ -39,15 +39,15 @@ export class UsersService {
     return result;
   }
 
-  async create(dto: CreateUsuarioDto) {
+  async create(dto: CreateUsuarioDto, userId: string) {
     const hash = await argon2.hash(dto.password);
-    const usuario = this.usuarioRepo.create({ ...dto, passwordHash: hash });
+    const usuario = this.usuarioRepo.create({ ...dto, passwordHash: hash, creadoPor: userId, actualizadoPor: userId });
     const saved = await this.usuarioRepo.save(usuario);
     const { passwordHash: _ph, ...result } = saved;
     return result;
   }
 
-  async update(id: string, dto: UpdateUsuarioDto) {
+  async update(id: string, dto: UpdateUsuarioDto, userId: string) {
     const usuario = await this.usuarioRepo.findOne({
       where: { id, estado: 'ACTIVO' },
     });
@@ -58,15 +58,17 @@ export class UsersService {
     }
     delete updateData.password;
     Object.assign(usuario, updateData);
+    usuario.actualizadoPor = userId;
     const saved = await this.usuarioRepo.save(usuario);
     const { passwordHash: _ph, ...result } = saved;
     return result;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const usuario = await this.usuarioRepo.findOne({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
     usuario.estado = 'INACTIVO';
+    usuario.actualizadoPor = userId;
     await this.usuarioRepo.save(usuario);
     return { message: 'Usuario eliminado lógicamente' };
   }

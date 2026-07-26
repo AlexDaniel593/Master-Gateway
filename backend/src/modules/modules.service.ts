@@ -33,29 +33,31 @@ export class ModulesService {
     return modulo;
   }
 
-  async create(dto: CreateModuloDto) {
-    const modulo = this.moduloRepo.create(dto);
+  async create(dto: CreateModuloDto, userId: string) {
+    const modulo = this.moduloRepo.create({ ...dto, creadoPor: userId, actualizadoPor: userId });
     return this.moduloRepo.save(modulo);
   }
 
-  async update(id: string, dto: UpdateModuloDto) {
+  async update(id: string, dto: UpdateModuloDto, userId: string) {
     const modulo = await this.moduloRepo.findOne({
       where: { id, estado: 'ACTIVO' },
     });
     if (!modulo) throw new NotFoundException('Módulo no encontrado');
     Object.assign(modulo, dto);
+    modulo.actualizadoPor = userId;
     return this.moduloRepo.save(modulo);
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const modulo = await this.moduloRepo.findOne({ where: { id } });
     if (!modulo) throw new NotFoundException('Módulo no encontrado');
     modulo.estado = 'INACTIVO';
+    modulo.actualizadoPor = userId;
     await this.moduloRepo.save(modulo);
     return { message: 'Módulo eliminado lógicamente' };
   }
 
-  async asignarARol(rolId: string, moduloId: string) {
+  async asignarARol(rolId: string, moduloId: string, userId: string) {
     const rol = await this.rolRepo.findOne({
       where: { id: rolId, estado: 'ACTIVO' },
     });
@@ -64,7 +66,7 @@ export class ModulesService {
       where: { id: moduloId, estado: 'ACTIVO' },
     });
     if (!modulo) throw new NotFoundException('Módulo no encontrado');
-    const rm = this.rolModuloRepo.create({ rol, modulo });
+    const rm = this.rolModuloRepo.create({ rol, modulo, creadoPor: userId, actualizadoPor: userId });
     return this.rolModuloRepo.save(rm);
   }
 }

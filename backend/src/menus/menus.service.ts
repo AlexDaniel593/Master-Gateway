@@ -66,7 +66,7 @@ export class MenusService {
       }));
   }
 
-  async create(dto: CreateMenuDto) {
+  async create(dto: CreateMenuDto, userId: string) {
     const modulo = await this.moduloRepo.findOne({
       where: { id: dto.moduloId, estado: 'ACTIVO' },
     });
@@ -85,11 +85,13 @@ export class MenusService {
       url: dto.url,
       modulo,
       padre,
+      creadoPor: userId,
+      actualizadoPor: userId,
     });
     return this.menuRepo.save(menu);
   }
 
-  async update(id: string, dto: UpdateMenuDto) {
+  async update(id: string, dto: UpdateMenuDto, userId: string) {
     const menu = await this.menuRepo.findOne({
       where: { id, estado: 'ACTIVO' },
       relations: { modulo: true, padre: true },
@@ -114,19 +116,21 @@ export class MenusService {
     }
     if (dto.nombre) menu.nombre = dto.nombre;
     if (dto.url !== undefined) menu.url = dto.url;
+    menu.actualizadoPor = userId;
 
     return this.menuRepo.save(menu);
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     const menu = await this.menuRepo.findOne({ where: { id } });
     if (!menu) throw new NotFoundException('Menú no encontrado');
     menu.estado = 'INACTIVO';
+    menu.actualizadoPor = userId;
     await this.menuRepo.save(menu);
     return { message: 'Menú eliminado lógicamente' };
   }
 
-  async asignarARol(rolId: string, menuId: string) {
+  async asignarARol(rolId: string, menuId: string, userId: string) {
     const rol = await this.rolRepo.findOne({
       where: { id: rolId, estado: 'ACTIVO' },
     });
@@ -135,7 +139,7 @@ export class MenusService {
       where: { id: menuId, estado: 'ACTIVO' },
     });
     if (!menu) throw new NotFoundException('Menú no encontrado');
-    const rm = this.rolMenuRepo.create({ rol, menu });
+    const rm = this.rolMenuRepo.create({ rol, menu, creadoPor: userId, actualizadoPor: userId });
     return this.rolMenuRepo.save(rm);
   }
 }
