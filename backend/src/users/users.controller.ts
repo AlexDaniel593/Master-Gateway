@@ -15,8 +15,10 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUserId } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @UseGuards(JwtAuthGuard)
+@Roles('ADMIN')
 @Controller('api/users')
 export class UsersController {
   constructor(private usersService: UsersService) {}

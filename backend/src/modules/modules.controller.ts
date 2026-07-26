@@ -14,8 +14,10 @@ import { UpdateModuloDto } from './dto/update-modulo.dto';
 import { AsignarModuloRolDto } from './dto/asignar-modulo-rol.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUserId } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @UseGuards(JwtAuthGuard)
+@Roles('ADMIN')
 @Controller('api/modules')
 export class ModulesController {
   constructor(private modulesService: ModulesService) {}
@@ -47,6 +49,7 @@ export class ModulesController {
 }
 
 @UseGuards(JwtAuthGuard)
+@Roles('ADMIN')
 @Controller('api/roles/:rolId/modules')
 export class RolModulesController {
   constructor(private modulesService: ModulesService) {}
