@@ -119,7 +119,7 @@ jobs:
           if [ "$PR_EXISTS" -gt 0 ]; then
             PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
             echo "ℹ️ PR #$PR_NUMBER ya existe. Mergeando..."
-            gh pr merge "$PR_NUMBER" --merge --delete-branch
+            gh pr merge "$PR_NUMBER" --merge --auto
           else
             echo "🚀 Creando PR test → main..."
             PR_URL=$(gh pr create \
@@ -130,7 +130,7 @@ jobs:
               --label auto-merge)
             echo "✅ PR creado: $PR_URL"
             PR_NUMBER=$(echo "$PR_URL" | grep -oP '\d+$')
-            gh pr merge "$PR_NUMBER" --merge --delete-branch
+            gh pr merge "$PR_NUMBER" --merge --auto
           fi
 
       - name: Notificar auto-merge
