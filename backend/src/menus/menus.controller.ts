@@ -14,6 +14,7 @@ import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { AsignarMenuRolDto } from './dto/asignar-menu-rol.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUserId } from '../common/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('api/menus')
@@ -31,18 +32,18 @@ export class MenusController {
   }
 
   @Post()
-  create(@Body() dto: CreateMenuDto) {
-    return this.menusService.create(dto);
+  create(@Body() dto: CreateMenuDto, @CurrentUserId() userId: string) {
+    return this.menusService.create(dto, userId);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateMenuDto) {
-    return this.menusService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateMenuDto, @CurrentUserId() userId: string) {
+    return this.menusService.update(id, dto, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.menusService.remove(id);
+  remove(@Param('id') id: string, @CurrentUserId() userId: string) {
+    return this.menusService.remove(id, userId);
   }
 }
 
@@ -52,7 +53,7 @@ export class RolMenusController {
   constructor(private menusService: MenusService) {}
 
   @Post()
-  asignar(@Param('rolId') rolId: string, @Body() dto: AsignarMenuRolDto) {
-    return this.menusService.asignarARol(rolId, dto.menuId);
+  asignar(@Param('rolId') rolId: string, @Body() dto: AsignarMenuRolDto, @CurrentUserId() userId: string) {
+    return this.menusService.asignarARol(rolId, dto.menuId, userId);
   }
 }

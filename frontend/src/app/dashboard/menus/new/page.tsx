@@ -104,8 +104,6 @@ export default function NewMenuPage() {
                 name="moduloId"
                 onValueChange={(v: string) => {
                   setSelectedModulo(v);
-                  const input = document.getElementById('moduloId_hidden') as HTMLInputElement;
-                  if (input) input.value = v;
                 }}
               >
                 <SelectTrigger>
@@ -119,7 +117,6 @@ export default function NewMenuPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <input type="hidden" id="moduloId_hidden" name="moduloId" />
               {fields.moduloId.errors && <p className="text-sm text-destructive">{fields.moduloId.errors}</p>}
             </div>
             <div className="space-y-2">
