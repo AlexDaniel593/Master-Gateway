@@ -1,5 +1,11 @@
 {
   "name": "master-gateway",
   "private": true,
-  "workspaces": ["backend", "frontend"]
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "zod": "^3.24.1"
+  }
 }
