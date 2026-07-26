@@ -14,8 +14,10 @@ import { UpdateRolDto } from './dto/update-rol.dto';
 import { AsignarUsuarioDto } from './dto/asignar-usuario.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUserId } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @UseGuards(JwtAuthGuard)
+@Roles('ADMIN')
 @Controller('api/roles')
 export class RolesController {
   constructor(private rolesService: RolesService) {}
