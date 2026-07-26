@@ -190,7 +190,39 @@ jobs:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: http://localhost:9000
 
-      # ---------- 7. Verificar Quality Gate ----------
+      # ---------- 7. Análisis ML con CodeBERT ----------
+      - name: 🧠 Análisis ML con CodeBERT
+        if: always()
+        run: |
+          echo "🧠 Instalando dependencias..."
+          pip install requests -q
+
+          echo "🧠 Ejecutando CodeBERT SAST..."
+          python scripts/analyze_codebert.py
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      # ---------- 8. Extraer resumen de CodeBERT ----------
+      - name: 📊 Extraer resumen de CodeBERT
+        if: always()
+        run: |
+          if [ ! -f "sast-report.json" ]; then
+            echo "CODEBERT_STATUS=skipped" >> $GITHUB_ENV
+            echo "CODEBERT_VULN_COUNT=0" >> $GITHUB_ENV
+            exit 0
+          fi
+          CODEBERT_STATUS=$(jq -r '.status' sast-report.json)
+          VULN_COUNT=$(jq '[.findings[] | select(.vulnerable == true)] | length' sast-report.json)
+          echo "CODEBERT_STATUS=$CODEBERT_STATUS" >> $GITHUB_ENV
+          echo "CODEBERT_VULN_COUNT=$VULN_COUNT" >> $GITHUB_ENV
+
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            echo "⚠️ CodeBERT detectó $VULN_COUNT archivos potencialmente vulnerables"
+          fi
+
+      # ---------- 9. Verificar Quality Gate ----------
       - name: ✅ Verificar Quality Gate
         id: quality_gate
         run: |
@@ -210,7 +242,7 @@ jobs:
             echo "QG_STATUS=UNKNOWN" >> $GITHUB_ENV
           fi
 
-      # ---------- 8. Depuración: listar archivos indexados ----------
+      # ---------- 9. Depuración: listar archivos indexados ----------
       - name: 📋 Listar archivos indexados
         if: always()
         run: |
@@ -220,7 +252,7 @@ jobs:
           TOTAL=$(curl -s "http://localhost:9000/api/components/tree?component=master-gateway&qualifiers=FIL&ps=500" -u "admin:admin" | jq '.components | length')
           echo "✅ Total de archivos indexados: $TOTAL"
 
-      # ---------- 9. Análisis de dependencias con Trivy ----------
+      # ---------- 10. Análisis de dependencias con Trivy ----------
       - name: 🔐 Escanear dependencias con Trivy
         if: always()
         uses: aquasecurity/trivy-action@master
@@ -232,7 +264,7 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH,MEDIUM,LOW'
 
-      # ---------- 10. Extraer resumen de Trivy ----------
+      # ---------- 11. Extraer resumen de Trivy ----------
       - name: 📊 Extraer resumen de Trivy
         if: always()
         run: |
@@ -257,7 +289,7 @@ jobs:
           echo "TRIVY_LOW=$LOW" >> $GITHUB_ENV
           echo "TRIVY_TOTAL=$TOTAL" >> $GITHUB_ENV
 
-      # ---------- 11. Obtener métricas de SonarQube ----------
+      # ---------- 12. Obtener métricas de SonarQube ----------
       - name: 📈 Obtener métricas
         if: always()
         run: |
@@ -292,7 +324,7 @@ jobs:
           echo "METRICS_REL=$(rating_to_letter $REL_R)" >> $GITHUB_ENV
           echo "METRICS_MAIN=$(rating_to_letter $MAIN_R)" >> $GITHUB_ENV
 
-      # ---------- 12. Generar reporte en GitHub ----------
+      # ---------- 14. Generar reporte en GitHub ----------
       - name: 📊 Reporte en GitHub
         if: always()
         run: |
@@ -319,6 +351,12 @@ jobs:
           | Fiabilidad | **${METRICS_REL:-N/A}** |
           | Mantenibilidad | **${METRICS_MAIN:-N/A}** |
 
+          ### Análisis ML (CodeBERT)
+
+          | Estado | Archivos vulnerables |
+          |---|---|
+          | **${CODEBERT_STATUS:-skipped}** | **${CODEBERT_VULN_COUNT:-0}** |
+
           ### Vulnerabilidades en dependencias
 
           | Severidad | Cantidad |
@@ -333,7 +371,7 @@ jobs:
           Rama analizada: \`${{ github.ref_name }}\`
           EOF
 
-      # ---------- 13. Construir mensaje para Telegram ----------
+      # ---------- 15. Construir mensaje para Telegram ----------
       - name: 📝 Construir mensaje para Telegram
         if: always()
         run: |
@@ -357,6 +395,9 @@ jobs:
           🛡️ Fiabilidad: ${METRICS_REL:-N/A}
           🏗️ Mantenibilidad: ${METRICS_MAIN:-N/A}
 
+          <b>🧠 CodeBERT:</b>
+          ${CODEBERT_STATUS:-skipped} | Vulnerables: ${CODEBERT_VULN_COUNT:-0}
+
           <b>📦 Trivy:</b>
           🔴 CRITICAL: ${TRIVY_CRITICAL:-0}
           🟠 HIGH: ${TRIVY_HIGH:-0}
@@ -369,7 +410,7 @@ jobs:
           )
           echo "$MESSAGE" > telegram_message.txt
 
-      # ---------- 14. Enviar notificación a Telegram ----------
+      # ---------- 16. Enviar notificación a Telegram ----------
       - name: 📨 Enviar notificación a Telegram
         if: always()
         uses: appleboy/telegram-action@master
@@ -379,7 +420,7 @@ jobs:
           format: html
           message_file: telegram_message.txt
 
-      # ---------- 15. Fallar pipeline si Quality Gate falla ----------
+      # ---------- 17. Fallar pipeline si Quality Gate falla ----------
       - name: 🚫 Abort on Quality Gate failure
         if: always()
         run: |
