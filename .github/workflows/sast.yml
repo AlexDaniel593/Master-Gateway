@@ -82,9 +82,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq curl
 
-      - name: 📦 Instalar dependencias backend
-        working-directory: backend
-        run: npm install --ignore-scripts
+      - name: 📦 Instalar dependencias
+        run: npm install
 
       # ---------- 2. Esperar a que SonarQube esté listo ----------
       - name: ⏳ Esperar SonarQube
