@@ -9,9 +9,13 @@ jobs:
   validate-pull-request:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - name: Validar origen del PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BASE="${{ github.base_ref }}"
           HEAD="${{ github.head_ref }}"
@@ -29,6 +33,11 @@ jobs:
           fi
 
           if [ "$BASE" = "main" ]; then
+            LABELS=$(gh pr view "${{ github.event.pull_request.number }}" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+            if echo "$LABELS" | grep -q "auto-merge"; then
+              echo "✅ PR test → main automático permitido"
+              exit 0
+            fi
             echo "❌ No se permiten PRs directos a 'main'"
             echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
             exit 1
