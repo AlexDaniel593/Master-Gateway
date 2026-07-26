@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify Deploy Start
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Desplegando en Render...</b>
+            Repo: ${{ github.repository }}
+            Branch: <b>main</b>
+            Commit: <code>${{ github.sha }}</code>
+            Autor: ${{ github.actor }}
+
+      - name: Deploy to Render
+        run: curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Notify Deploy Success
+        if: success()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Deploy Exitoso en Render</b>
+            Repo: ${{ github.repository }}
+            Branch: <b>main</b>
+            Commit: <code>${{ github.sha }}</code>
+            URL: https://master-gateway-bka1.onrender.com
+
+      - name: Notify Deploy Failure
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: html
+          message: |
+            <b>Deploy FALLIDO en Render</b>
+            Repo: ${{ github.repository }}
+            Commit: <code>${{ github.sha }}</code>
+            Link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
