@@ -1,14 +1,33 @@
 name: SAST Analysis
 
 on:
-  push:
-    branches: [ main, test ]
   pull_request:
-    branches: [ main, test ]
+    branches: [ test ]
   workflow_dispatch:
 
 jobs:
+  validate-pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar PR a test solo desde dev
+        if: github.base_ref == 'test'
+        run: |
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "❌ Solo se permiten PRs a 'test' desde la rama 'dev'"
+            exit 1
+          fi
+          echo "✅ PR a test desde dev - válido"
+
+      - name: Bloquear PR directo a main
+        if: github.base_ref == 'main'
+        run: |
+          echo "❌ No se permiten PRs directos a 'main'"
+          echo "Los cambios deben llegar a main mediante el pipeline automático desde 'test'"
+          exit 1
+
   sonarqube:
+    needs: validate-pull-request
     name: 🔍 Análisis SAST
     runs-on: ubuntu-latest
     timeout-minutes: 45
