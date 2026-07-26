@@ -11,4 +11,4 @@ COPY package*.json ./
 RUN npm install --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-CMD ["node", "dist/main"]
+CMD node dist/seed && node dist/main
