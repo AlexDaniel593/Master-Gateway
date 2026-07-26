@@ -128,7 +128,7 @@ jobs:
       - name: 🧪 Tests - Backend
         working-directory: backend
         run: |
-          npm run test:cov || true
+          npm run test:cov
           [ ! -f "coverage/lcov.info" ] && echo "" > coverage/lcov.info
 
       # ---------- 5. Crear proyecto y asignar Quality Gate ----------
@@ -146,22 +146,11 @@ jobs:
           fi
 
       # ---------- 6. Ejecutar escaneo de SonarQube ----------
-      - name: 🔍 Ejecutar SonarQube Scan
+      - name: Ejecutar SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: http://localhost:9000
-        with:
-          args: >
-            -Dsonar.projectKey=AlexDaniel593_Master-Gateway
-            -Dsonar.organization=alexdaniel593
-            -Dsonar.sources=backend/src
-            -Dsonar.tests=backend
-            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts
-            -Dsonar.exclusions=**/dist/**,**/node_modules/**
-            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info
-            -Dsonar.coverage.exclusions=**/*.spec.ts,**/*.test.ts,**/main.ts,**/dist/**,**/node_modules/**
-            -Dsonar.sourceEncoding=UTF-8
 
       # ---------- 7. Verificar Quality Gate ----------
       - name: ✅ Verificar Quality Gate
