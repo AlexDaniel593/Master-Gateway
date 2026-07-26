@@ -21,6 +21,13 @@ export class MenusService {
     private moduloRepo: Repository<Modulo>,
   ) {}
 
+  async findAll() {
+    return this.menuRepo.find({
+      where: { estado: 'ACTIVO' },
+      relations: { modulo: true, padre: true },
+    });
+  }
+
   async getTree(rolId: string) {
     const rolMenus = await this.rolMenuRepo.find({
       where: { rol: { id: rolId }, menu: { estado: 'ACTIVO' } },

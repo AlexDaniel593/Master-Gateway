@@ -25,6 +25,11 @@ export class MenusController {
     return this.menusService.getTree(req.user.rolId);
   }
 
+  @Get()
+  findAll() {
+    return this.menusService.findAll();
+  }
+
   @Post()
   create(@Body() dto: CreateMenuDto) {
     return this.menusService.create(dto);
