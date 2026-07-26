@@ -105,7 +105,7 @@ def main():
         print(f"CodeBERT: {len(vulnerable)} potentially vulnerable files detected.")
         for v in vulnerable:
             print(f"  -> {v['file']} (confidence: {v['confidence']:.2%})")
-        sys.exit(0)
+        sys.exit(1)
     else:
         print("CodeBERT: No vulnerabilities detected.")
         sys.exit(0)
