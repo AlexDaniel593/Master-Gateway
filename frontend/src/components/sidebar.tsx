@@ -31,6 +31,10 @@ import {
   Loader2,
 } from 'lucide-react';
 
+function isExternalUrl(url?: string): boolean {
+  return !!url && (url.startsWith('http://') || url.startsWith('https://'));
+}
+
 function MenuItem({
   item,
   level = 0,
@@ -41,7 +45,7 @@ function MenuItem({
   pathname: string;
 }) {
   const hasChildren = item.hijos && item.hijos.length > 0;
-  const isActive = pathname === item.url;
+  const isActive = !isExternalUrl(item.url) && pathname === item.url;
 
   if (hasChildren) {
     return (
@@ -72,16 +76,29 @@ function MenuItem({
   };
   const Icon = iconMap[item.nombre] || LayoutDashboard;
 
+  const classes = cn(
+    'flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
+    isActive
+      ? 'bg-primary text-primary-foreground'
+      : 'hover:bg-accent hover:text-accent-foreground',
+  );
+
+  if (isExternalUrl(item.url)) {
+    return (
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={classes}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span>{item.nombre}</span>
+      </a>
+    );
+  }
+
   return (
-    <Link
-      href={item.url || '/'}
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors',
-        isActive
-          ? 'bg-primary text-primary-foreground'
-          : 'hover:bg-accent hover:text-accent-foreground',
-      )}
-    >
+    <Link href={item.url || '/'} className={classes}>
       <Icon className="h-4 w-4 shrink-0" />
       <span>{item.nombre}</span>
     </Link>
