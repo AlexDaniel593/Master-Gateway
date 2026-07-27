@@ -82,6 +82,8 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('tempToken');
       expect(result).toHaveProperty('roles');
+      expect(result).toHaveProperty('user');
+      expect(result.user).toEqual({ id: 'uuid-user-1', email: 'test@example.com', nombre: 'Test User' });
       expect(result.roles).toEqual([{ id: 'uuid-rol-1', nombre: 'ADMIN' }]);
       expect(jwtService.sign).toHaveBeenCalled();
     });

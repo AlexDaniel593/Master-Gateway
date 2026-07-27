@@ -24,7 +24,7 @@ export default function LoginPage() {
       const { data } = await authApi.login(email, password);
       authStore.getState().setTempToken(data.tempToken);
       authStore.getState().setRoles(data.roles);
-      authStore.getState().setUser({ email, nombre: '' });
+      authStore.getState().setUser({ email: data.user.email, nombre: data.user.nombre });
       toast.success('Credenciales válidas', { id: loading });
       router.push('/select-role');
     } catch {
