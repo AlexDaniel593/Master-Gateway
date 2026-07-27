@@ -15,7 +15,11 @@ describe('MenusService', () => {
   let rolRepo: Repository<Rol>;
   let moduloRepo: Repository<Modulo>;
 
-  const mockModulo = { id: 'uuid-mod-1', nombre: 'Seguridad', estado: 'ACTIVO' };
+  const mockModulo = {
+    id: 'uuid-mod-1',
+    nombre: 'Seguridad',
+    estado: 'ACTIVO',
+  };
   const mockRol = { id: 'uuid-rol-1', nombre: 'ADMIN', estado: 'ACTIVO' };
   const mockMenu = {
     id: 'uuid-menu-1',
@@ -103,7 +107,13 @@ describe('MenusService', () => {
       ];
       jest.spyOn(rolMenuRepo, 'find').mockResolvedValue(mockRolMenus as any);
       jest.spyOn(menuRepo, 'query').mockResolvedValue([
-        { id: 'uuid-menu-1', nombre: 'Usuarios', url: '/users', parent_id: null, modulo_id: 'uuid-mod-1' },
+        {
+          id: 'uuid-menu-1',
+          nombre: 'Usuarios',
+          url: '/users',
+          parent_id: null,
+          modulo_id: 'uuid-mod-1',
+        },
       ]);
 
       const result = await menusService.getTree('uuid-rol-1');
@@ -146,7 +156,11 @@ describe('MenusService', () => {
 
       await expect(
         menusService.create(
-          { nombre: 'Test', moduloId: 'uuid-mod-1', parentId: 'non-existent-parent' },
+          {
+            nombre: 'Test',
+            moduloId: 'uuid-mod-1',
+            parentId: 'non-existent-parent',
+          },
           'admin-uuid',
         ),
       ).rejects.toThrow(NotFoundException);
@@ -162,7 +176,11 @@ describe('MenusService', () => {
         nombre: 'Updated Menu',
       } as any);
 
-      const result = await menusService.update('uuid-menu-1', updateDto, 'admin-uuid');
+      const result = await menusService.update(
+        'uuid-menu-1',
+        updateDto,
+        'admin-uuid',
+      );
 
       expect(result).toHaveProperty('nombre', 'Updated Menu');
     });
@@ -171,7 +189,11 @@ describe('MenusService', () => {
       jest.spyOn(menuRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        menusService.update('non-existent-id', { nombre: 'test' }, 'admin-uuid'),
+        menusService.update(
+          'non-existent-id',
+          { nombre: 'test' },
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -179,7 +201,11 @@ describe('MenusService', () => {
       jest.spyOn(menuRepo, 'findOne').mockResolvedValue(mockMenu as any);
 
       await expect(
-        menusService.update('uuid-menu-1', { parentId: 'uuid-menu-1' }, 'admin-uuid'),
+        menusService.update(
+          'uuid-menu-1',
+          { parentId: 'uuid-menu-1' },
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -228,7 +254,11 @@ describe('MenusService', () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        menusService.asignarARol('non-existent-rol', 'uuid-menu-1', 'admin-uuid'),
+        menusService.asignarARol(
+          'non-existent-rol',
+          'uuid-menu-1',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -237,7 +267,11 @@ describe('MenusService', () => {
       jest.spyOn(menuRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        menusService.asignarARol('uuid-rol-1', 'non-existent-menu', 'admin-uuid'),
+        menusService.asignarARol(
+          'uuid-rol-1',
+          'non-existent-menu',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

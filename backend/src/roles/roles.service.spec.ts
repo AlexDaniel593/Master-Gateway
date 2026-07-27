@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RolesService } from './roles.service';
@@ -64,7 +61,9 @@ describe('RolesService', () => {
 
     rolesService = module.get<RolesService>(RolesService);
     rolRepo = module.get<Repository<Rol>>(getRepositoryToken(Rol));
-    usuarioRolRepo = module.get<Repository<UsuarioRol>>(getRepositoryToken(UsuarioRol));
+    usuarioRolRepo = module.get<Repository<UsuarioRol>>(
+      getRepositoryToken(UsuarioRol),
+    );
     usuarioRepo = module.get<Repository<Usuario>>(getRepositoryToken(Usuario));
   });
 
@@ -133,7 +132,11 @@ describe('RolesService', () => {
         descripcion: 'Updated description',
       } as any);
 
-      const result = await rolesService.update('uuid-rol-1', updateDto, 'admin-uuid');
+      const result = await rolesService.update(
+        'uuid-rol-1',
+        updateDto,
+        'admin-uuid',
+      );
 
       expect(result).toHaveProperty('descripcion', 'Updated description');
     });
@@ -142,7 +145,11 @@ describe('RolesService', () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        rolesService.update('non-existent-id', { nombre: 'test' }, 'admin-uuid'),
+        rolesService.update(
+          'non-existent-id',
+          { nombre: 'test' },
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -151,7 +158,9 @@ describe('RolesService', () => {
     it('should soft-delete a rol with no active users', async () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(mockRol as any);
       jest.spyOn(usuarioRolRepo, 'count').mockResolvedValue(0);
-      jest.spyOn(rolRepo, 'save').mockResolvedValue({ ...mockRol, estado: 'INACTIVO' } as any);
+      jest
+        .spyOn(rolRepo, 'save')
+        .mockResolvedValue({ ...mockRol, estado: 'INACTIVO' } as any);
 
       const result = await rolesService.remove('uuid-rol-1', 'admin-uuid');
 
@@ -178,15 +187,27 @@ describe('RolesService', () => {
 
   describe('asignarUsuario', () => {
     it('should assign a user to a rol', async () => {
-      const mockUsuario = { id: 'uuid-user-1', email: 'user@test.com', estado: 'ACTIVO' };
+      const mockUsuario = {
+        id: 'uuid-user-1',
+        email: 'user@test.com',
+        estado: 'ACTIVO',
+      };
 
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(mockRol as any);
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(mockUsuario as any);
       jest.spyOn(usuarioRolRepo, 'findOne').mockResolvedValue(null);
-      jest.spyOn(usuarioRolRepo, 'create').mockReturnValue(mockUsuarioRol as any);
-      jest.spyOn(usuarioRolRepo, 'save').mockResolvedValue(mockUsuarioRol as any);
+      jest
+        .spyOn(usuarioRolRepo, 'create')
+        .mockReturnValue(mockUsuarioRol as any);
+      jest
+        .spyOn(usuarioRolRepo, 'save')
+        .mockResolvedValue(mockUsuarioRol as any);
 
-      const result = await rolesService.asignarUsuario('uuid-rol-1', 'uuid-user-1', 'admin-uuid');
+      const result = await rolesService.asignarUsuario(
+        'uuid-rol-1',
+        'uuid-user-1',
+        'admin-uuid',
+      );
 
       expect(result).toHaveProperty('id', 'uuid-ur-1');
     });
@@ -195,7 +216,11 @@ describe('RolesService', () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        rolesService.asignarUsuario('non-existent-rol', 'uuid-user-1', 'admin-uuid'),
+        rolesService.asignarUsuario(
+          'non-existent-rol',
+          'uuid-user-1',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -204,14 +229,22 @@ describe('RolesService', () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        rolesService.asignarUsuario('uuid-rol-1', 'non-existent-user', 'admin-uuid'),
+        rolesService.asignarUsuario(
+          'uuid-rol-1',
+          'non-existent-user',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException when user already has the rol', async () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(mockRol as any);
-      jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue({ id: 'uuid-user-1' } as any);
-      jest.spyOn(usuarioRolRepo, 'findOne').mockResolvedValue(mockUsuarioRol as any);
+      jest
+        .spyOn(usuarioRepo, 'findOne')
+        .mockResolvedValue({ id: 'uuid-user-1' } as any);
+      jest
+        .spyOn(usuarioRolRepo, 'findOne')
+        .mockResolvedValue(mockUsuarioRol as any);
 
       await expect(
         rolesService.asignarUsuario('uuid-rol-1', 'uuid-user-1', 'admin-uuid'),
@@ -221,7 +254,9 @@ describe('RolesService', () => {
 
   describe('desasignarUsuario', () => {
     it('should soft-delete the user-rol assignment', async () => {
-      jest.spyOn(usuarioRolRepo, 'findOne').mockResolvedValue(mockUsuarioRol as any);
+      jest
+        .spyOn(usuarioRolRepo, 'findOne')
+        .mockResolvedValue(mockUsuarioRol as any);
       jest.spyOn(usuarioRolRepo, 'save').mockResolvedValue({
         ...mockUsuarioRol,
         estado: 'INACTIVO',
@@ -240,7 +275,11 @@ describe('RolesService', () => {
       jest.spyOn(usuarioRolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        rolesService.desasignarUsuario('uuid-rol-1', 'uuid-user-1', 'admin-uuid'),
+        rolesService.desasignarUsuario(
+          'uuid-rol-1',
+          'uuid-user-1',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

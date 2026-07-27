@@ -57,7 +57,9 @@ describe('UsersService', () => {
         { ...mockUsuario, id: 'uuid-1' },
         { ...mockUsuario, id: 'uuid-2' },
       ];
-      jest.spyOn(usuarioRepo, 'findAndCount').mockResolvedValue([users as any, 2]);
+      jest
+        .spyOn(usuarioRepo, 'findAndCount')
+        .mockResolvedValue([users as any, 2]);
 
       const result = await usersService.findAll(1, 10);
 
@@ -126,7 +128,11 @@ describe('UsersService', () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(mockUsuario as any);
       jest.spyOn(usuarioRepo, 'save').mockResolvedValue(updatedUser as any);
 
-      const result = await usersService.update('uuid-user-1', updateDto, 'admin-uuid');
+      const result = await usersService.update(
+        'uuid-user-1',
+        updateDto,
+        'admin-uuid',
+      );
 
       expect(result).not.toHaveProperty('passwordHash');
       expect(result).toHaveProperty('nombre', 'Updated Name');
@@ -148,7 +154,11 @@ describe('UsersService', () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        usersService.update('non-existent-id', { nombre: 'test' }, 'admin-uuid'),
+        usersService.update(
+          'non-existent-id',
+          { nombre: 'test' },
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -171,9 +181,9 @@ describe('UsersService', () => {
     it('should throw NotFoundException when user not found', async () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
-      await expect(usersService.remove('non-existent-id', 'admin-uuid')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        usersService.remove('non-existent-id', 'admin-uuid'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

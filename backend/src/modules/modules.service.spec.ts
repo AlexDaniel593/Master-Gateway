@@ -57,7 +57,9 @@ describe('ModulesService', () => {
 
     modulesService = module.get<ModulesService>(ModulesService);
     moduloRepo = module.get<Repository<Modulo>>(getRepositoryToken(Modulo));
-    rolModuloRepo = module.get<Repository<RolModulo>>(getRepositoryToken(RolModulo));
+    rolModuloRepo = module.get<Repository<RolModulo>>(
+      getRepositoryToken(RolModulo),
+    );
     rolRepo = module.get<Repository<Rol>>(getRepositoryToken(Rol));
   });
 
@@ -121,7 +123,11 @@ describe('ModulesService', () => {
         descripcion: 'Updated desc',
       } as any);
 
-      const result = await modulesService.update('uuid-mod-1', updateDto, 'admin-uuid');
+      const result = await modulesService.update(
+        'uuid-mod-1',
+        updateDto,
+        'admin-uuid',
+      );
 
       expect(result).toHaveProperty('descripcion', 'Updated desc');
     });
@@ -130,7 +136,11 @@ describe('ModulesService', () => {
       jest.spyOn(moduloRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        modulesService.update('non-existent-id', { nombre: 'test' }, 'admin-uuid'),
+        modulesService.update(
+          'non-existent-id',
+          { nombre: 'test' },
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -183,7 +193,11 @@ describe('ModulesService', () => {
       jest.spyOn(rolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        modulesService.asignarARol('non-existent-rol', 'uuid-mod-1', 'admin-uuid'),
+        modulesService.asignarARol(
+          'non-existent-rol',
+          'uuid-mod-1',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -192,7 +206,11 @@ describe('ModulesService', () => {
       jest.spyOn(moduloRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        modulesService.asignarARol('uuid-rol-1', 'non-existent-mod', 'admin-uuid'),
+        modulesService.asignarARol(
+          'uuid-rol-1',
+          'non-existent-mod',
+          'admin-uuid',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

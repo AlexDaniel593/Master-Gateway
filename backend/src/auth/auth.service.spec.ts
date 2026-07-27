@@ -59,7 +59,9 @@ describe('AuthService', () => {
 
     authService = module.get<AuthService>(AuthService);
     usuarioRepo = module.get<Repository<Usuario>>(getRepositoryToken(Usuario));
-    usuarioRolRepo = module.get<Repository<UsuarioRol>>(getRepositoryToken(UsuarioRol));
+    usuarioRolRepo = module.get<Repository<UsuarioRol>>(
+      getRepositoryToken(UsuarioRol),
+    );
     jwtService = module.get<JwtService>(JwtService);
   });
 
@@ -72,7 +74,10 @@ describe('AuthService', () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(mockUsuario as any);
       (jest.requireMock('argon2').verify as jest.Mock).mockResolvedValue(true);
 
-      const dto: LoginDto = { email: 'test@example.com', password: 'password123' };
+      const dto: LoginDto = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
       const result = await authService.login(dto);
 
       expect(result).toHaveProperty('tempToken');
@@ -85,7 +90,10 @@ describe('AuthService', () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        authService.login({ email: 'notfound@test.com', password: 'password123' }),
+        authService.login({
+          email: 'notfound@test.com',
+          password: 'password123',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -94,7 +102,10 @@ describe('AuthService', () => {
       (jest.requireMock('argon2').verify as jest.Mock).mockResolvedValue(false);
 
       await expect(
-        authService.login({ email: 'test@example.com', password: 'wrong-password' }),
+        authService.login({
+          email: 'test@example.com',
+          password: 'wrong-password',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -103,11 +114,16 @@ describe('AuthService', () => {
         ...mockUsuario,
         usuarioRoles: [],
       };
-      jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(userWithoutRoles as any);
+      jest
+        .spyOn(usuarioRepo, 'findOne')
+        .mockResolvedValue(userWithoutRoles as any);
       (jest.requireMock('argon2').verify as jest.Mock).mockResolvedValue(true);
 
       await expect(
-        authService.login({ email: 'test@example.com', password: 'password123' }),
+        authService.login({
+          email: 'test@example.com',
+          password: 'password123',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
@@ -139,7 +155,10 @@ describe('AuthService', () => {
       });
 
       await expect(
-        authService.selectRole({ tempToken: 'invalid-token', roleId: 'uuid-rol-1' }),
+        authService.selectRole({
+          tempToken: 'invalid-token',
+          roleId: 'uuid-rol-1',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -150,7 +169,10 @@ describe('AuthService', () => {
       });
 
       await expect(
-        authService.selectRole({ tempToken: 'refresh-token', roleId: 'uuid-rol-1' }),
+        authService.selectRole({
+          tempToken: 'refresh-token',
+          roleId: 'uuid-rol-1',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -163,7 +185,10 @@ describe('AuthService', () => {
       jest.spyOn(usuarioRolRepo, 'findOne').mockResolvedValue(null);
 
       await expect(
-        authService.selectRole({ tempToken: 'valid-temp-token', roleId: 'uuid-rol-2' }),
+        authService.selectRole({
+          tempToken: 'valid-temp-token',
+          roleId: 'uuid-rol-2',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -210,15 +235,15 @@ describe('AuthService', () => {
       });
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
-      await expect(authService.refreshToken('valid-refresh-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        authService.refreshToken('valid-refresh-token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('logout', () => {
-    it('should return a success message', async () => {
-      const result = await authService.logout();
+    it('should return a success message', () => {
+      const result = authService.logout();
 
       expect(result).toEqual({ message: 'Sesión cerrada exitosamente' });
     });

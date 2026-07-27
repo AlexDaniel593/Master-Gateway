@@ -34,7 +34,11 @@ export class ModulesService {
   }
 
   async create(dto: CreateModuloDto, userId: string) {
-    const modulo = this.moduloRepo.create({ ...dto, creadoPor: userId, actualizadoPor: userId });
+    const modulo = this.moduloRepo.create({
+      ...dto,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     return this.moduloRepo.save(modulo);
   }
 
@@ -66,7 +70,12 @@ export class ModulesService {
       where: { id: moduloId, estado: 'ACTIVO' },
     });
     if (!modulo) throw new NotFoundException('Módulo no encontrado');
-    const rm = this.rolModuloRepo.create({ rol, modulo, creadoPor: userId, actualizadoPor: userId });
+    const rm = this.rolModuloRepo.create({
+      rol,
+      modulo,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     return this.rolModuloRepo.save(rm);
   }
 }

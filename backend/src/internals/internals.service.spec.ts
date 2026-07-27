@@ -40,7 +40,10 @@ describe('InternalsService', () => {
     it('should return valid true when user has the role', async () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(mockUsuario as any);
 
-      const result = await internalsService.validateToken('uuid-user-1', 'uuid-rol-1');
+      const result = await internalsService.validateToken(
+        'uuid-user-1',
+        'uuid-rol-1',
+      );
 
       expect(result).toEqual({
         valid: true,
@@ -52,7 +55,10 @@ describe('InternalsService', () => {
     it('should return valid false when user not found', async () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(null);
 
-      const result = await internalsService.validateToken('non-existent-id', 'uuid-rol-1');
+      const result = await internalsService.validateToken(
+        'non-existent-id',
+        'uuid-rol-1',
+      );
 
       expect(result).toEqual({ valid: false });
     });
@@ -60,7 +66,10 @@ describe('InternalsService', () => {
     it('should return valid false when user does not have the role', async () => {
       jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(mockUsuario as any);
 
-      const result = await internalsService.validateToken('uuid-user-1', 'uuid-rol-2');
+      const result = await internalsService.validateToken(
+        'uuid-user-1',
+        'uuid-rol-2',
+      );
 
       expect(result).toEqual({ valid: false });
     });
@@ -74,9 +83,14 @@ describe('InternalsService', () => {
           },
         ],
       };
-      jest.spyOn(usuarioRepo, 'findOne').mockResolvedValue(userWithInactiveRole as any);
+      jest
+        .spyOn(usuarioRepo, 'findOne')
+        .mockResolvedValue(userWithInactiveRole as any);
 
-      const result = await internalsService.validateToken('uuid-user-1', 'uuid-rol-1');
+      const result = await internalsService.validateToken(
+        'uuid-user-1',
+        'uuid-rol-1',
+      );
 
       expect(result).toEqual({ valid: false });
     });
