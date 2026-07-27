@@ -139,7 +139,12 @@ export class MenusService {
       where: { id: menuId, estado: 'ACTIVO' },
     });
     if (!menu) throw new NotFoundException('Menú no encontrado');
-    const rm = this.rolMenuRepo.create({ rol, menu, creadoPor: userId, actualizadoPor: userId });
+    const rm = this.rolMenuRepo.create({
+      rol,
+      menu,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     return this.rolMenuRepo.save(rm);
   }
 }
