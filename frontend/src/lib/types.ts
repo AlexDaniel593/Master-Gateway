@@ -24,6 +24,7 @@ export interface Modulo {
   descripcion?: string;
   estado: string;
   menus?: Menu[];
+  rolModulos?: RolModulo[];
 }
 
 export interface Menu {
@@ -34,6 +35,7 @@ export interface Menu {
   moduloId: string;
   parentId?: string;
   hijos?: Menu[];
+  rolMenus?: RolMenu[];
 }
 
 export interface MenuTree {
@@ -46,19 +48,21 @@ export interface MenuTree {
 
 export interface UsuarioRol {
   id: string;
+  estado: string;
   usuario: Usuario;
   rol: Rol;
-  estado: string;
 }
 
 export interface RolModulo {
   id: string;
+  estado: string;
   rol: Rol;
   modulo: Modulo;
 }
 
 export interface RolMenu {
   id: string;
+  estado: string;
   rol: Rol;
   menu: Menu;
 }

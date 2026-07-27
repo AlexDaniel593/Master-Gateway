@@ -28,6 +28,15 @@ export class MenusService {
     });
   }
 
+  async findOne(id: string) {
+    const menu = await this.menuRepo.findOne({
+      where: { id, estado: 'ACTIVO' },
+      relations: { modulo: true, padre: true, rolMenus: { rol: true } },
+    });
+    if (!menu) throw new NotFoundException('Menú no encontrado');
+    return menu;
+  }
+
   async getTree(rolId: string) {
     const rolMenus = await this.rolMenuRepo.find({
       where: { rol: { id: rolId }, menu: { estado: 'ACTIVO' } },
@@ -146,5 +155,20 @@ export class MenusService {
       actualizadoPor: userId,
     });
     return this.rolMenuRepo.save(rm);
+  }
+
+  async desasignarARol(rolId: string, menuId: string, userId: string) {
+    const rm = await this.rolMenuRepo.findOne({
+      where: {
+        rol: { id: rolId },
+        menu: { id: menuId },
+        estado: 'ACTIVO',
+      },
+    });
+    if (!rm) throw new NotFoundException('La asignación no existe');
+    rm.estado = 'INACTIVO';
+    rm.actualizadoPor = userId;
+    await this.rolMenuRepo.save(rm);
+    return { message: 'Menú desasignado del rol' };
   }
 }
