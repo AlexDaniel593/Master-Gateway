@@ -160,11 +160,9 @@ export default function Sidebar() {
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
-            <div className="text-sm">
-              <p className="font-medium truncate max-w-[120px]">{user?.nombre || user?.email}</p>
-              {user?.nombre && (
-                <p className="text-xs text-muted-foreground truncate max-w-[120px]">{user?.email}</p>
-              )}
+            <div className="text-sm min-w-0">
+              <p className="font-medium truncate">{user?.nombre || 'Usuario'}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
           <DropdownMenu>
