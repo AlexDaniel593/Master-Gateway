@@ -32,7 +32,11 @@ export class RolesService {
   async findOne(id: string) {
     const rol = await this.rolRepo.findOne({
       where: { id, estado: 'ACTIVO' },
-      relations: { usuarioRoles: { usuario: true } },
+      relations: {
+        usuarioRoles: { usuario: true },
+        rolModulos: { modulo: true },
+        rolMenus: { menu: true },
+      },
     });
     if (!rol) throw new NotFoundException('Rol no encontrado');
     return rol;

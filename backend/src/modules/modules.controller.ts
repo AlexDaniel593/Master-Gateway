@@ -66,4 +66,13 @@ export class RolModulesController {
   ) {
     return this.modulesService.asignarARol(rolId, dto.moduloId, userId);
   }
+
+  @Delete(':moduloId')
+  desasignar(
+    @Param('rolId') rolId: string,
+    @Param('moduloId') moduloId: string,
+    @CurrentUserId() userId: string,
+  ) {
+    return this.modulesService.desasignarARol(rolId, moduloId, userId);
+  }
 }

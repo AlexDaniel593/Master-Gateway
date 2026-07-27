@@ -33,6 +33,12 @@ export class MenusController {
     return this.menusService.findAll();
   }
 
+  @Get(':id')
+  @Roles('ADMIN')
+  findOne(@Param('id') id: string) {
+    return this.menusService.findOne(id);
+  }
+
   @Post()
   @Roles('ADMIN')
   create(@Body() dto: CreateMenuDto, @CurrentUserId() userId: string) {
@@ -69,5 +75,14 @@ export class RolMenusController {
     @CurrentUserId() userId: string,
   ) {
     return this.menusService.asignarARol(rolId, dto.menuId, userId);
+  }
+
+  @Delete(':menuId')
+  desasignar(
+    @Param('rolId') rolId: string,
+    @Param('menuId') menuId: string,
+    @CurrentUserId() userId: string,
+  ) {
+    return this.menusService.desasignarARol(rolId, menuId, userId);
   }
 }
