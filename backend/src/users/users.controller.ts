@@ -39,7 +39,11 @@ export class UsersController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateUsuarioDto, @CurrentUserId() userId: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUsuarioDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.usersService.update(id, dto, userId);
   }
 

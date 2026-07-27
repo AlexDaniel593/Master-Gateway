@@ -39,7 +39,11 @@ export class RolesService {
   }
 
   async create(dto: CreateRolDto, userId: string) {
-    const rol = this.rolRepo.create({ ...dto, creadoPor: userId, actualizadoPor: userId });
+    const rol = this.rolRepo.create({
+      ...dto,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     return this.rolRepo.save(rol);
   }
 
@@ -85,7 +89,12 @@ export class RolesService {
     });
     if (existente)
       throw new BadRequestException('El usuario ya tiene este rol asignado');
-    const ur = this.usuarioRolRepo.create({ usuario, rol, creadoPor: userId, actualizadoPor: userId });
+    const ur = this.usuarioRolRepo.create({
+      usuario,
+      rol,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     return this.usuarioRolRepo.save(ur);
   }
 

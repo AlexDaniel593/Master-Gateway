@@ -41,7 +41,12 @@ export class UsersService {
 
   async create(dto: CreateUsuarioDto, userId: string) {
     const hash = await argon2.hash(dto.password);
-    const usuario = this.usuarioRepo.create({ ...dto, passwordHash: hash, creadoPor: userId, actualizadoPor: userId });
+    const usuario = this.usuarioRepo.create({
+      ...dto,
+      passwordHash: hash,
+      creadoPor: userId,
+      actualizadoPor: userId,
+    });
     const saved = await this.usuarioRepo.save(usuario);
     const { passwordHash: _ph, ...result } = saved;
     return result;

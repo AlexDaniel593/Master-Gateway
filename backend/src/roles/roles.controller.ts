@@ -38,7 +38,11 @@ export class RolesController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateRolDto, @CurrentUserId() currentUserId: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateRolDto,
+    @CurrentUserId() currentUserId: string,
+  ) {
     return this.rolesService.update(id, dto, currentUserId);
   }
 
@@ -48,12 +52,20 @@ export class RolesController {
   }
 
   @Post(':id/users')
-  asignarUsuario(@Param('id') id: string, @Body() dto: AsignarUsuarioDto, @CurrentUserId() currentUserId: string) {
+  asignarUsuario(
+    @Param('id') id: string,
+    @Body() dto: AsignarUsuarioDto,
+    @CurrentUserId() currentUserId: string,
+  ) {
     return this.rolesService.asignarUsuario(id, dto.usuarioId, currentUserId);
   }
 
   @Delete(':id/users/:userId')
-  desasignarUsuario(@Param('id') id: string, @Param('userId') userId: string, @CurrentUserId() currentUserId: string) {
+  desasignarUsuario(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @CurrentUserId() currentUserId: string,
+  ) {
     return this.rolesService.desasignarUsuario(id, userId, currentUserId);
   }
 }

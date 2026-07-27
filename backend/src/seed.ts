@@ -22,7 +22,9 @@ async function bootstrap() {
   const rolNombre = process.env.SEED_ROL;
 
   if (!email || !password || !nombre || !rolNombre) {
-    console.log('Seed omitido. Variables de entorno requeridas: SEED_EMAIL, SEED_PASSWORD, SEED_NOMBRE, SEED_ROL');
+    console.log(
+      'Seed omitido. Variables de entorno requeridas: SEED_EMAIL, SEED_PASSWORD, SEED_NOMBRE, SEED_ROL',
+    );
     await app.close();
     return;
   }
