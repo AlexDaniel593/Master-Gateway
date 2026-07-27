@@ -14,16 +14,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { rolesApi, usersApi } from '@/lib/api';
-import type { Rol, Usuario } from '@/lib/types';
-import { ArrowLeft, Loader2, UserPlus, UserX } from 'lucide-react';
+import { rolesApi, usersApi, modulesApi, menusApi } from '@/lib/api';
+import type { Rol, Usuario, Modulo, Menu } from '@/lib/types';
+import { ArrowLeft, Loader2, UserPlus, UserX, Puzzle, LayoutList, Trash2 } from 'lucide-react';
 
 export default function EditRolePage() {
   const router = useRouter();
   const params = useParams();
   const [rol, setRol] = useState<Rol | null>(null);
   const [users, setUsers] = useState<Usuario[]>([]);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
+  const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedModuloId, setSelectedModuloId] = useState('');
+  const [selectedMenuId, setSelectedMenuId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,12 +36,16 @@ export default function EditRolePage() {
 
   const loadData = async () => {
     try {
-      const [rolRes, usersRes] = await Promise.all([
+      const [rolRes, usersRes, modulosRes, menusRes] = await Promise.all([
         rolesApi.findOne(params.id as string),
         usersApi.findAll(1, 100),
+        modulesApi.findAll(),
+        menusApi.findAll(),
       ]);
       setRol(rolRes.data);
       setUsers(usersRes.data.data);
+      setModulos(modulosRes.data);
+      setMenus(menusRes.data);
     } catch {
       toast.error('Error al cargar datos');
       router.push('/dashboard/roles');
@@ -68,6 +76,50 @@ export default function EditRolePage() {
     }
   };
 
+  const assignModule = async () => {
+    if (!selectedModuloId) return;
+    try {
+      await modulesApi.asignarARol(params.id as string, selectedModuloId);
+      toast.success('Módulo asignado al rol');
+      loadData();
+      setSelectedModuloId('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Error al asignar módulo');
+    }
+  };
+
+  const removeModule = async (moduloId: string) => {
+    try {
+      await modulesApi.desasignarARol(params.id as string, moduloId);
+      toast.success('Módulo desasignado del rol');
+      loadData();
+    } catch {
+      toast.error('Error al desasignar módulo');
+    }
+  };
+
+  const assignMenu = async () => {
+    if (!selectedMenuId) return;
+    try {
+      await menusApi.asignarARol(params.id as string, selectedMenuId);
+      toast.success('Menú asignado al rol');
+      loadData();
+      setSelectedMenuId('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Error al asignar menú');
+    }
+  };
+
+  const removeMenu = async (menuId: string) => {
+    try {
+      await menusApi.desasignarARol(params.id as string, menuId);
+      toast.success('Menú desasignado del rol');
+      loadData();
+    } catch {
+      toast.error('Error al desasignar menú');
+    }
+  };
+
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
 
@@ -94,6 +146,14 @@ export default function EditRolePage() {
 
   const assignedUserIds = new Set(
     rol?.usuarioRoles?.filter((ur) => ur.estado === 'ACTIVO').map((ur) => ur.usuario.id) || [],
+  );
+
+  const assignedModuloIds = new Set(
+    rol?.rolModulos?.filter((rm) => rm.estado === 'ACTIVO').map((rm) => rm.modulo.id) || [],
+  );
+
+  const assignedMenuIds = new Set(
+    rol?.rolMenus?.filter((rm) => rm.estado === 'ACTIVO').map((rm) => rm.menu.id) || [],
   );
 
   return (
@@ -162,6 +222,100 @@ export default function EditRolePage() {
                     onClick={() => removeUser(ur.usuario.id)}
                   >
                     <UserX className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Módulos asignados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Select value={selectedModuloId} onValueChange={setSelectedModuloId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Seleccionar módulo" />
+              </SelectTrigger>
+              <SelectContent>
+                {modulos
+                  .filter((m) => m.estado === 'ACTIVO' && !assignedModuloIds.has(m.id))
+                  .map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nombre}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={assignModule} disabled={!selectedModuloId}>
+              <Puzzle className="h-4 w-4" />
+              Asignar
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {rol?.rolModulos
+              ?.filter((rm) => rm.estado === 'ACTIVO')
+              .map((rm) => (
+                <div
+                  key={rm.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                >
+                  <p className="text-sm font-medium">{rm.modulo.nombre}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeModule(rm.modulo.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Menús asignados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Select value={selectedMenuId} onValueChange={setSelectedMenuId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Seleccionar menú" />
+              </SelectTrigger>
+              <SelectContent>
+                {menus
+                  .filter((m) => m.estado === 'ACTIVO' && !assignedMenuIds.has(m.id))
+                  .map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nombre}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={assignMenu} disabled={!selectedMenuId}>
+              <LayoutList className="h-4 w-4" />
+              Asignar
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {rol?.rolMenus
+              ?.filter((rm) => rm.estado === 'ACTIVO')
+              .map((rm) => (
+                <div
+                  key={rm.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                >
+                  <p className="text-sm font-medium">{rm.menu.nombre}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMenu(rm.menu.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               ))}

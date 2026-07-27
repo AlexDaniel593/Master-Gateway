@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { modulesApi, rolesApi } from '@/lib/api';
 import type { Modulo, Rol } from '@/lib/types';
-import { ArrowLeft, Loader2, Puzzle, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Link as LinkIcon, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -68,10 +68,25 @@ export default function EditModulePage() {
       await modulesApi.asignarARol(selectedRoleId, params.id as string);
       toast.success('Módulo asignado al rol');
       setSelectedRoleId('');
+      loadData();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Error al asignar');
     }
   };
+
+  const removeFromRole = async (rolId: string) => {
+    try {
+      await modulesApi.desasignarARol(rolId, params.id as string);
+      toast.success('Rol desasignado del módulo');
+      loadData();
+    } catch {
+      toast.error('Error al desasignar rol');
+    }
+  };
+
+  const assignedRoleIds = new Set(
+    mod?.rolModulos?.filter((rm) => rm.estado === 'ACTIVO').map((rm) => rm.rol.id) || [],
+  );
 
   if (loading) {
     return (
@@ -116,7 +131,7 @@ export default function EditModulePage() {
               </SelectTrigger>
               <SelectContent>
                 {roles
-                  .filter((r) => r.estado === 'ACTIVO')
+                  .filter((r) => r.estado === 'ACTIVO' && !assignedRoleIds.has(r.id))
                   .map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.nombre}
@@ -129,6 +144,35 @@ export default function EditModulePage() {
               Asignar
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Roles asignados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {mod?.rolModulos?.filter((rm) => rm.estado === 'ACTIVO').length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin roles asignados</p>
+          ) : (
+            mod?.rolModulos
+              ?.filter((rm) => rm.estado === 'ACTIVO')
+              .map((rm) => (
+                <div
+                  key={rm.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                >
+                  <p className="text-sm font-medium">{rm.rol.nombre}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeFromRole(rm.rol.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))
+          )}
         </CardContent>
       </Card>
     </div>

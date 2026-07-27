@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { menusApi, modulesApi, rolesApi } from '@/lib/api';
-import { ArrowLeft, Loader2, Link as LinkIcon } from 'lucide-react';
+import { menusApi, rolesApi } from '@/lib/api';
+import { ArrowLeft, Loader2, Link as LinkIcon, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -16,13 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Menu, Modulo, Rol } from '@/lib/types';
+import type { Menu, Rol } from '@/lib/types';
 
 export default function EditMenuPage() {
   const router = useRouter();
   const params = useParams();
   const [menu, setMenu] = useState<Menu | null>(null);
-  const [modulos, setModulos] = useState<Modulo[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -33,18 +32,12 @@ export default function EditMenuPage() {
 
   const loadData = async () => {
     try {
-      const [menuRes, modRes, rolesRes] = await Promise.all([
-        menusApi.findAll(),
-        modulesApi.findAll(),
+      const [menuRes, rolesRes] = await Promise.all([
+        menusApi.findOne(params.id as string),
         rolesApi.findAll(),
       ]);
-      setMenu(menuRes.data.find((m) => m.id === params.id) || null);
-      setModulos(modRes.data.filter((m) => m.estado === 'ACTIVO'));
-      setRoles(rolesRes.data.filter((r) => r.estado === 'ACTIVO'));
-      if (!menuRes.data.find((m) => m.id === params.id)) {
-        toast.error('Menú no encontrado');
-        router.push('/dashboard/menus');
-      }
+      setMenu(menuRes.data);
+      setRoles(rolesRes.data);
     } catch {
       toast.error('Error al cargar datos');
       router.push('/dashboard/menus');
@@ -75,10 +68,25 @@ export default function EditMenuPage() {
       await menusApi.asignarARol(selectedRoleId, params.id as string);
       toast.success('Menú asignado al rol');
       setSelectedRoleId('');
+      loadData();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Error al asignar');
     }
   };
+
+  const removeFromRole = async (rolId: string) => {
+    try {
+      await menusApi.desasignarARol(rolId, params.id as string);
+      toast.success('Rol desasignado del menú');
+      loadData();
+    } catch {
+      toast.error('Error al desasignar rol');
+    }
+  };
+
+  const assignedRoleIds = new Set(
+    menu?.rolMenus?.filter((rm) => rm.estado === 'ACTIVO').map((rm) => rm.rol.id) || [],
+  );
 
   if (loading) {
     return (
@@ -115,23 +123,56 @@ export default function EditMenuPage() {
         <CardHeader>
           <CardTitle>Asignar a rol</CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-2">
-          <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Seleccionar rol" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={assignToRole} disabled={!selectedRoleId}>
-            <LinkIcon className="h-4 w-4" />
-            Asignar
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Seleccionar rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles
+                  .filter((r) => r.estado === 'ACTIVO' && !assignedRoleIds.has(r.id))
+                  .map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.nombre}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={assignToRole} disabled={!selectedRoleId}>
+              <LinkIcon className="h-4 w-4" />
+              Asignar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Roles asignados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {menu?.rolMenus?.filter((rm) => rm.estado === 'ACTIVO').length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin roles asignados</p>
+          ) : (
+            menu?.rolMenus
+              ?.filter((rm) => rm.estado === 'ACTIVO')
+              .map((rm) => (
+                <div
+                  key={rm.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                >
+                  <p className="text-sm font-medium">{rm.rol.nombre}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeFromRole(rm.rol.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))
+          )}
         </CardContent>
       </Card>
     </div>

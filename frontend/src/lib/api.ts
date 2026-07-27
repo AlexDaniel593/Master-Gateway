@@ -63,11 +63,14 @@ export const modulesApi = {
   remove: (id: string) => api.delete(`/api/modules/${id}`),
   asignarARol: (rolId: string, moduloId: string) =>
     api.post(`/api/roles/${rolId}/modules`, { moduloId }),
+  desasignarARol: (rolId: string, moduloId: string) =>
+    api.delete(`/api/roles/${rolId}/modules/${moduloId}`),
 };
 
 export const menusApi = {
   getTree: () => api.get<MenuTree[]>('/api/menus/tree'),
   findAll: () => api.get<Menu[]>('/api/menus'),
+  findOne: (id: string) => api.get<Menu>(`/api/menus/${id}`),
   create: (data: { nombre: string; url?: string; moduloId: string; parentId?: string }) =>
     api.post<Menu>('/api/menus', data),
   update: (id: string, data: { nombre?: string; url?: string; moduloId?: string; parentId?: string }) =>
@@ -75,4 +78,6 @@ export const menusApi = {
   remove: (id: string) => api.delete(`/api/menus/${id}`),
   asignarARol: (rolId: string, menuId: string) =>
     api.post(`/api/roles/${rolId}/menus`, { menuId }),
+  desasignarARol: (rolId: string, menuId: string) =>
+    api.delete(`/api/roles/${rolId}/menus/${menuId}`),
 };

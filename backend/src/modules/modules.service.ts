@@ -28,6 +28,7 @@ export class ModulesService {
   async findOne(id: string) {
     const modulo = await this.moduloRepo.findOne({
       where: { id, estado: 'ACTIVO' },
+      relations: { rolModulos: { rol: true } },
     });
     if (!modulo) throw new NotFoundException('Módulo no encontrado');
     return modulo;
@@ -77,5 +78,20 @@ export class ModulesService {
       actualizadoPor: userId,
     });
     return this.rolModuloRepo.save(rm);
+  }
+
+  async desasignarARol(rolId: string, moduloId: string, userId: string) {
+    const rm = await this.rolModuloRepo.findOne({
+      where: {
+        rol: { id: rolId },
+        modulo: { id: moduloId },
+        estado: 'ACTIVO',
+      },
+    });
+    if (!rm) throw new NotFoundException('La asignación no existe');
+    rm.estado = 'INACTIVO';
+    rm.actualizadoPor = userId;
+    await this.rolModuloRepo.save(rm);
+    return { message: 'Módulo desasignado del rol' };
   }
 }
