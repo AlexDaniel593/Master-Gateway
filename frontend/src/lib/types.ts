@@ -74,6 +74,7 @@ export interface PaginatedResponse<T> {
 export interface LoginResponse {
   tempToken: string;
   roles: { id: string; nombre: string }[];
+  user: { id: string; email: string; nombre: string };
 }
 
 export interface SelectRoleResponse {

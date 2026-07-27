@@ -44,7 +44,11 @@ export class AuthService {
       { expiresIn: '5m' as any },
     );
 
-    return { tempToken, roles };
+    return {
+      tempToken,
+      roles,
+      user: { id: usuario.id, email: usuario.email, nombre: usuario.nombre },
+    };
   }
 
   async selectRole(dto: SelectRoleDto) {
