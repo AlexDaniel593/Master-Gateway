@@ -38,7 +38,11 @@ export class ModulesController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateModuloDto, @CurrentUserId() userId: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateModuloDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.modulesService.update(id, dto, userId);
   }
 
@@ -55,7 +59,11 @@ export class RolModulesController {
   constructor(private modulesService: ModulesService) {}
 
   @Post()
-  asignar(@Param('rolId') rolId: string, @Body() dto: AsignarModuloRolDto, @CurrentUserId() userId: string) {
+  asignar(
+    @Param('rolId') rolId: string,
+    @Body() dto: AsignarModuloRolDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.modulesService.asignarARol(rolId, dto.moduloId, userId);
   }
 }

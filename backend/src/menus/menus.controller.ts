@@ -41,7 +41,11 @@ export class MenusController {
 
   @Put(':id')
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateMenuDto, @CurrentUserId() userId: string) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateMenuDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.menusService.update(id, dto, userId);
   }
 
@@ -59,7 +63,11 @@ export class RolMenusController {
   constructor(private menusService: MenusService) {}
 
   @Post()
-  asignar(@Param('rolId') rolId: string, @Body() dto: AsignarMenuRolDto, @CurrentUserId() userId: string) {
+  asignar(
+    @Param('rolId') rolId: string,
+    @Body() dto: AsignarMenuRolDto,
+    @CurrentUserId() userId: string,
+  ) {
     return this.menusService.asignarARol(rolId, dto.menuId, userId);
   }
 }
