@@ -5,6 +5,10 @@
     "backend",
     "frontend"
   ],
+  "scripts": {
+    "start:backend": "npm run start:dev --workspace=backend",
+    "start:frontend": "npm run dev --workspace=frontend"
+  },
   "devDependencies": {
     "zod": "^3.24.1"
   }

@@ -4,6 +4,18 @@
 
 > **Universidad de las Fuerzas Armadas ESPE** - Desarrollo de Software Seguro  
 > Prof. Geovanny Cudco - Julio 2026
+>
+> Integrantes:
+>
+> Daniel Guaman
+>
+> Kevin Amaguana
+
+**Link invitacion del grupo telegram** [https://t.me/+XqvZR1MTGc9lZWFh](https://t.me/+XqvZR1MTGc9lZWFh)
+
+**Link frontend en produccion** [https://master-gateway-frontend.vercel.app/login](https://master-gateway-frontend.vercel.app/login)
+
+**Link backend en produccion** [ https://master-gateway-bka1.onrender.com]( https://master-gateway-bka1.onrender.com)
 
 ---
 
@@ -419,7 +431,8 @@ El contenedor ejecuta el seed de datos antes de iniciar la aplicacion.
 
 ```bash
 # Clonar el repositorio
-git clone <repo-url>
+git clone https://github.com/AlexDaniel593/Master-Gateway
+
 cd Master-Gateway
 
 # Instalar dependencias (monorepo con npm workspaces)
