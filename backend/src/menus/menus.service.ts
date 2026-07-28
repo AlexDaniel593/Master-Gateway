@@ -34,12 +34,13 @@ export class MenusService {
       relations: { modulo: true, padre: true, rolMenus: { rol: true } },
     });
     if (!menu) throw new NotFoundException('Menú no encontrado');
+    menu.rolMenus = menu.rolMenus?.filter((rm) => rm.estado === 'ACTIVO') ?? [];
     return menu;
   }
 
   async getTree(rolId: string) {
     const rolMenus = await this.rolMenuRepo.find({
-      where: { rol: { id: rolId }, menu: { estado: 'ACTIVO' } },
+      where: { rol: { id: rolId }, estado: 'ACTIVO', menu: { estado: 'ACTIVO' } },
       relations: { menu: { modulo: true, padre: true } },
     });
 
