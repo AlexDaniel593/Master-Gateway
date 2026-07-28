@@ -38,8 +38,10 @@ export default function NewRolePage() {
         });
         toast.success('Rol creado');
         router.push('/dashboard/roles');
-      } catch {
-        toast.error('Error al crear rol');
+      } catch (error: unknown) {
+        const msg =
+          (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        toast.error(msg || 'Error al crear rol');
         setIsSubmitting(false);
       }
     },
