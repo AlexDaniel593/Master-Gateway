@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@conform-to/react';
 import { parseWithZod } from '@conform-to/zod';
@@ -20,6 +21,7 @@ const schema = z.object({
 
 export default function NewUserPage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, fields] = useForm({
     onValidate({ formData }) {
@@ -27,10 +29,12 @@ export default function NewUserPage() {
     },
     onSubmit: async (event) => {
       event.preventDefault();
+      if (isSubmitting) return;
       const formData = new FormData(event.currentTarget);
       const submission = parseWithZod(formData, { schema });
       if (submission.status !== 'success') return submission;
 
+      setIsSubmitting(true);
       try {
         await usersApi.create({
           nombre: formData.get('nombre') as string,
@@ -41,6 +45,7 @@ export default function NewUserPage() {
         router.push('/dashboard/users');
       } catch {
         toast.error('Error al crear usuario');
+        setIsSubmitting(false);
       }
     },
   });
@@ -71,7 +76,9 @@ export default function NewUserPage() {
               <Input id="password" name="password" type="password" placeholder="••••••••" required />
               {fields.password.errors && <p className="text-sm text-destructive">{fields.password.errors}</p>}
             </div>
-            <Button type="submit" className="w-full">Crear usuario</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Creando...' : 'Crear usuario'}
+            </Button>
           </form>
         </CardContent>
       </Card>
