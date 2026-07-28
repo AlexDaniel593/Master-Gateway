@@ -80,7 +80,7 @@ export default function NewMenuPage() {
     },
   });
 
-  const parentMenus = menus.filter((m) => m.moduloId === selectedModulo || !selectedModulo);
+  const parentMenus = menus.filter((m) => (m.modulo?.id ?? m.moduloId) === selectedModulo || !selectedModulo);
 
   return (
     <div className="space-y-4 max-w-md">
