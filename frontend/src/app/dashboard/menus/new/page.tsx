@@ -33,6 +33,7 @@ export default function NewMenuPage() {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [selectedModulo, setSelectedModulo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -57,10 +58,12 @@ export default function NewMenuPage() {
     },
     onSubmit: async (event) => {
       event.preventDefault();
+      if (isSubmitting) return;
       const formData = new FormData(event.currentTarget);
       const submission = parseWithZod(formData, { schema });
       if (submission.status !== 'success') return submission;
 
+      setIsSubmitting(true);
       try {
         await menusApi.create({
           nombre: formData.get('nombre') as string,
@@ -72,6 +75,7 @@ export default function NewMenuPage() {
         router.push('/dashboard/menus');
       } catch {
         toast.error('Error al crear menú');
+        setIsSubmitting(false);
       }
     },
   });
@@ -134,7 +138,9 @@ export default function NewMenuPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">Crear menú</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Creando...' : 'Crear menú'}
+            </Button>
           </form>
         </CardContent>
       </Card>

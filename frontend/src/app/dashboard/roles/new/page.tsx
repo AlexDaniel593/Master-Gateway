@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from '@conform-to/react';
 import { parseWithZod } from '@conform-to/zod';
@@ -19,6 +20,7 @@ const schema = z.object({
 
 export default function NewRolePage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, fields] = useForm({
     onValidate({ formData }) {
@@ -26,7 +28,9 @@ export default function NewRolePage() {
     },
     onSubmit: async (event) => {
       event.preventDefault();
+      if (isSubmitting) return;
       const formData = new FormData(event.currentTarget);
+      setIsSubmitting(true);
       try {
         await rolesApi.create({
           nombre: formData.get('nombre') as string,
@@ -36,6 +40,7 @@ export default function NewRolePage() {
         router.push('/dashboard/roles');
       } catch {
         toast.error('Error al crear rol');
+        setIsSubmitting(false);
       }
     },
   });
@@ -60,7 +65,9 @@ export default function NewRolePage() {
               <Label htmlFor="descripcion">Descripción</Label>
               <Input id="descripcion" name="descripcion" placeholder="Descripción del rol" />
             </div>
-            <Button type="submit" className="w-full">Crear rol</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? 'Creando...' : 'Crear rol'}
+            </Button>
           </form>
         </CardContent>
       </Card>
