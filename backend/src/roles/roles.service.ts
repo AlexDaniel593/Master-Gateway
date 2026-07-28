@@ -43,6 +43,18 @@ export class RolesService {
   }
 
   async create(dto: CreateRolDto, userId: string) {
+    const existing = await this.rolRepo.findOne({
+      where: { nombre: dto.nombre },
+    });
+    if (existing) {
+      if (existing.estado === 'ACTIVO') {
+        throw new BadRequestException('Ya existe un rol activo con ese nombre');
+      } else {
+        throw new BadRequestException(
+          `Ya existe un rol con el nombre "${dto.nombre}" pero está inactivo. Reactívelo desde la lista de roles.`,
+        );
+      }
+    }
     const rol = this.rolRepo.create({
       ...dto,
       creadoPor: userId,

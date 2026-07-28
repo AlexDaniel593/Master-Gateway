@@ -33,6 +33,7 @@ export interface Menu {
   url?: string;
   estado: string;
   moduloId: string;
+  modulo?: { id: string; nombre: string };
   parentId?: string;
   hijos?: Menu[];
   rolMenus?: RolMenu[];
