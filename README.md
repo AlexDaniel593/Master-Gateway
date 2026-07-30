@@ -19,6 +19,65 @@
 
 ---
 
+## Ejecucion con Docker Compose
+
+### Requisitos
+
+- Docker Engine 20.10+
+- Docker Compose v2+
+
+### Variables de Entorno
+
+Copia el archivo de ejemplo y configura las variables:
+
+```bash
+cp .env.example .env
+```
+
+Edita el archivo `.env` con tus valores:
+
+```env
+POSTGRES_USER=master_gateway
+POSTGRES_PASSWORD=master_gateway
+POSTGRES_DB=master_gateway
+
+DATABASE_URL=postgresql://master_gateway:master_gateway@db:5432/master_gateway
+JWT_SECRET=tu-secreto-aqui
+JWT_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7d
+
+SEED_EMAIL=admin@example.com
+SEED_PASSWORD=Admin123!
+SEED_NOMBRE=Admin
+SEED_ROL=admin
+```
+
+### Levantar la aplicacion
+
+```bash
+# Construir y levantar todos los servicios
+docker compose up --build -d
+
+# Ver logs
+docker compose logs -f
+
+# Detener servicios
+docker compose down
+
+# Detener y eliminar volumenes (reset completo de la DB)
+docker compose down -v
+```
+
+### Servicios
+
+| Servicio | URL | Puerto |
+|----------|-----|--------|
+| Frontend (Next.js) | http://localhost:3001 | 3001 |
+| Backend API (NestJS) | http://localhost:3000 | 3000 |
+| PostgreSQL | localhost:5432 | 5432 |
+
+---
+
 ## Arquitectura de la Aplicacion
 
 ```mermaid
